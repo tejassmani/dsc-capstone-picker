@@ -8,9 +8,11 @@ from rich.table import Table
 from dsc_capstone_picker.models import (
     CapstoneDomain,
     DOMAINS_PATH,
+    Recommendation,
     load_domains,
     save_domains,
 )
+from dsc_capstone_picker.rank import parse_profile_file, rank_domains
 from dsc_capstone_picker.scrape import fetch_domains
 from dsc_capstone_picker.search import find_domain, search_domains
 
@@ -70,11 +72,18 @@ def search(query: str) -> None:
 
 
 @app.command()
-def recommend(profile: str, top: int = 10, llm: bool = False) -> None:
+def recommend(
+    profile: str = typer.Option(..., "--profile", "-p", help="Path to a plain-text profile."),
+    top: int = typer.Option(10, "--top", "-n", help="Number of recommendations to show."),
+) -> None:
     """Recommend capstone domains based on a student profile."""
-    console.print(f"Ranking top {top} domains using profile: {profile}")
-    if llm:
-        console.print("LLM explanations enabled.")
+    domains = _load_cached_domains()
+    if domains is None:
+        return
+
+    student_profile = parse_profile_file(profile)
+    recommendations = rank_domains(domains, student_profile, top=top)
+    console.print(_recommendations_table(recommendations))
 
 def _load_cached_domains() -> list[CapstoneDomain] | None:
     if not DOMAINS_PATH.exists():
@@ -102,6 +111,26 @@ def _domains_table(domains: list[CapstoneDomain], title: str = "Capstone Domains
             domain.meeting_time or "",
             "Yes" if domain.industry_partner else "No",
             domain.topic_area or "",
+        )
+
+    return table
+
+
+def _recommendations_table(recommendations: list[Recommendation]) -> Table:
+    table = Table(title="Recommendations")
+    table.add_column("Rank", justify="right")
+    table.add_column("Title", overflow="fold")
+    table.add_column("Score", justify="right")
+    table.add_column("Reasons", overflow="fold")
+    table.add_column("Concerns", overflow="fold")
+
+    for index, recommendation in enumerate(recommendations, start=1):
+        table.add_row(
+            str(index),
+            recommendation.domain.title,
+            f"{recommendation.score:.2f}",
+            "\n".join(recommendation.reasons),
+            "\n".join(recommendation.concerns),
         )
 
     return table

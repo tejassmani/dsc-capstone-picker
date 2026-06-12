@@ -17,3 +17,13 @@ Preferences:
 - projects with clear deliverables
 - mentors who provide structured guidance
 - prefer not to do heavy theory
+
+Avoid:
+- blockchain
+- hardware
+- heavy theory
+
+Career Goals:
+- machine learning engineer
+- applied AI
+- data scientist
