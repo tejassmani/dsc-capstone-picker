@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.scripts]
-dsc-capstone-picker = "dsc_capstone_picker:main"
+dsc-capstone-picker = "dsc_capstone_picker.cli:app"
 
 [build-system]
 requires = ["uv_build>=0.11.11,<0.12.0"]
