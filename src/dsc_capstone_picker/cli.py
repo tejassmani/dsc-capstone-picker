@@ -1,16 +1,20 @@
 import typer
-from pathlib import Path
 from rich.console import Console
+
+from dsc_capstone_picker.models import DOMAINS_PATH, save_domains
+from dsc_capstone_picker.scrape import fetch_domains
 
 app = typer.Typer(help="Explore, compare, and rank UCSD DSC capstone domains.")
 console = Console()
-DOMAINS_PATH = Path("domains.json")
 
 
 @app.command()
 def fetch() -> None:
     """Fetch and cache capstone domain information."""
     console.print("Fetching capstone data...")
+    domains = fetch_domains()
+    save_domains(domains)
+    console.print(f"Saved {len(domains)} domains to {DOMAINS_PATH}.")
 
 
 @app.command()
