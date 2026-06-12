@@ -20,6 +20,10 @@ from dsc_capstone_picker.models import (
     save_profile,
 )
 from dsc_capstone_picker.export import EXPORT_FORMATS, export_recommendations
+from dsc_capstone_picker.llm import (
+    MissingOpenAIAPIKeyError,
+    add_llm_explanations,
+)
 from dsc_capstone_picker.rank import parse_profile_file, rank_domains
 from dsc_capstone_picker.resume import merge_profiles, profile_from_resume
 from dsc_capstone_picker.scrape import fetch_domains
@@ -97,6 +101,7 @@ def recommend(
     profile: str | None = typer.Option(None, "--profile", "-p", help="Path to a text or JSON profile."),
     resume: str | None = typer.Option(None, "--resume", "-r", help="Path to a plain-text resume."),
     top: int = typer.Option(10, "--top", "-n", help="Number of recommendations to show."),
+    llm: bool = typer.Option(False, "--llm", help="Add optional OpenAI-powered explanations."),
 ) -> None:
     """Recommend capstone domains based on a student profile."""
     domains = _load_cached_domains()
@@ -106,6 +111,15 @@ def recommend(
     recommendations = _rank_from_inputs(domains, profile=profile, resume=resume, top=top)
     if recommendations is None:
         return
+    if llm:
+        student_profile = _profile_from_inputs(profile=profile, resume=resume)
+        if student_profile is None:
+            return
+        try:
+            recommendations = add_llm_explanations(recommendations, student_profile)
+        except MissingOpenAIAPIKeyError as error:
+            console.print(str(error))
+            return
     console.print(_recommendations_table(recommendations))
 
 
@@ -221,6 +235,20 @@ def _rank_from_inputs(
         console.print("Provide --profile, --resume, or both.")
         return None
 
+    student_profile = _profile_from_inputs(profile=profile, resume=resume)
+    if student_profile is None:
+        return None
+    return rank_domains(domains, student_profile, top=top)
+
+
+def _profile_from_inputs(
+    profile: str | None,
+    resume: str | None,
+) -> StudentProfile | None:
+    if profile is None and resume is None:
+        console.print("Provide --profile, --resume, or both.")
+        return None
+
     questionnaire_profile = parse_profile_file(profile) if profile is not None else None
     try:
         resume_profile = profile_from_resume(resume) if resume is not None else None
@@ -228,8 +256,7 @@ def _rank_from_inputs(
         console.print(str(error))
         return None
 
-    student_profile = merge_profiles(questionnaire_profile, resume_profile)
-    return rank_domains(domains, student_profile, top=top)
+    return merge_profiles(questionnaire_profile, resume_profile)
 
 
 def _domains_table(domains: list[CapstoneDomain], title: str = "Capstone Domains") -> Table:
@@ -258,22 +285,28 @@ def _domains_table(domains: list[CapstoneDomain], title: str = "Capstone Domains
 
 def _recommendations_table(recommendations: list[Recommendation]) -> Table:
     table = Table(title="Recommendations")
+    has_llm_explanations = any(recommendation.llm_explanation for recommendation in recommendations)
     table.add_column("Rank", justify="right")
     table.add_column("Title", overflow="fold")
     table.add_column("Score", justify="right")
     table.add_column("Breakdown", overflow="fold")
     table.add_column("Reasons", overflow="fold")
     table.add_column("Concerns", overflow="fold")
+    if has_llm_explanations:
+        table.add_column("LLM Explanation", overflow="fold")
 
     for index, recommendation in enumerate(recommendations, start=1):
-        table.add_row(
+        row = [
             str(index),
             recommendation.domain.title,
             f"{recommendation.score:.2f}",
             _format_score_breakdown(recommendation.score_breakdown),
             "\n".join(recommendation.reasons),
             "\n".join(recommendation.concerns),
-        )
+        ]
+        if has_llm_explanations:
+            row.append(recommendation.llm_explanation)
+        table.add_row(*row)
 
     return table
 

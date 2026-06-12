@@ -40,6 +40,7 @@ class Recommendation(BaseModel):
     score_breakdown: dict[str, float] = Field(default_factory=dict)
     reasons: list[str] = Field(default_factory=list)
     concerns: list[str] = Field(default_factory=list)
+    llm_explanation: str = ""
 
 
 def save_domains(domains: list[CapstoneDomain], path: str | Path = DOMAINS_PATH) -> None:
