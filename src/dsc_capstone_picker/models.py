@@ -37,6 +37,7 @@ class StudentProfile(BaseModel):
 class Recommendation(BaseModel):
     domain: CapstoneDomain
     score: float
+    score_breakdown: dict[str, float] = Field(default_factory=dict)
     reasons: list[str] = Field(default_factory=list)
     concerns: list[str] = Field(default_factory=list)
 

@@ -1,7 +1,12 @@
-from pathlib import Path
 import re
+from pathlib import Path
 
-from dsc_capstone_picker.models import CapstoneDomain, Recommendation, StudentProfile
+from dsc_capstone_picker.models import (
+    CapstoneDomain,
+    Recommendation,
+    StudentProfile,
+    load_profile,
+)
 
 PROFILE_HEADINGS = {
     "interests": "interests",
@@ -19,11 +24,43 @@ SCORE_WEIGHTS = {
     "prerequisite_skills": 1.0,
     "avoid": -4.0,
 }
+ABBREVIATION_ALIASES = {
+    "ai": ["artificial intelligence"],
+    "api": ["application programming interface"],
+    "aws": ["amazon web services"],
+    "bi": ["business intelligence"],
+    "cse": ["computer science", "computer science and engineering"],
+    "cpu": ["central processing unit", "processor"],
+    "crm": ["customer relationship management"],
+    "dsc": ["data science"],
+    "ece": ["electrical engineering", "electrical and computer engineering"],
+    "gis": ["geographic information system", "geospatial"],
+    "gpu": ["graphics processing unit", "accelerator"],
+    "gwas": ["genome wide association study", "genomics"],
+    "hdsi": ["halicioglu data science institute", "data science institute"],
+    "hpc": ["high performance computing"],
+    "irb": ["institutional review board"],
+    "llm": ["large language model", "large language models"],
+    "lm": ["language model", "language models"],
+    "ml": ["machine learning"],
+    "mmd": ["maximum mean discrepancy"],
+    "nlp": ["natural language processing"],
+    "rag": ["retrieval augmented generation"],
+    "rl": ["reinforcement learning"],
+    "rlhf": ["reinforcement learning from human feedback"],
+    "sdk": ["software development kit"],
+    "seo": ["search engine optimization"],
+    "sql": ["structured query language", "database"],
+    "ui": ["user interface"],
+    "ucsd": ["uc san diego", "university of california san diego"],
+}
 
 
 def parse_profile_file(path: str | Path) -> StudentProfile:
-    """Parse a plain-text profile file with optional section headings."""
+    """Load a JSON profile or parse a plain-text profile file."""
     source = Path(path)
+    if source.suffix.casefold() == ".json":
+        return load_profile(source)
     return parse_profile_text(source.read_text(encoding="utf-8"))
 
 
@@ -81,40 +118,47 @@ def score_domain(domain: CapstoneDomain, profile: StudentProfile) -> Recommendat
     """Score one domain against a parsed student profile."""
     reasons: list[str] = []
     concerns: list[str] = []
-    score = 0.0
+    score_breakdown = {
+        "interest_overlap": 0.0,
+        "skill_overlap": 0.0,
+        "preference_overlap": 0.0,
+        "career_goal_overlap": 0.0,
+        "prerequisite_skill_match": 0.0,
+        "avoid_term_penalty": 0.0,
+    }
 
     domain_text = _domain_text(domain)
-    prerequisite_text = _normalize(domain.prerequisites)
+    prerequisite_text = _expanded_text(domain.prerequisites)
 
-    score += _score_matches(
+    score_breakdown["interest_overlap"] = _score_matches(
         "interest",
         profile.interests,
         domain_text,
         SCORE_WEIGHTS["interests"],
         reasons,
     )
-    score += _score_matches(
+    score_breakdown["skill_overlap"] = _score_matches(
         "skill",
         profile.skills,
         domain_text,
         SCORE_WEIGHTS["skills"],
         reasons,
     )
-    score += _score_matches(
+    score_breakdown["preference_overlap"] = _score_matches(
         "preference",
         profile.preferences,
         domain_text,
         SCORE_WEIGHTS["preferences"],
         reasons,
     )
-    score += _score_matches(
+    score_breakdown["career_goal_overlap"] = _score_matches(
         "career goal",
         profile.career_goals,
         domain_text,
         SCORE_WEIGHTS["career_goals"],
         reasons,
     )
-    score += _score_matches(
+    score_breakdown["prerequisite_skill_match"] = _score_matches(
         "prerequisite skill",
         profile.skills,
         prerequisite_text,
@@ -125,17 +169,21 @@ def score_domain(domain: CapstoneDomain, profile: StudentProfile) -> Recommendat
     avoid_matches = _matched_terms(profile.avoid, domain_text)
     if avoid_matches:
         penalty = len(avoid_matches) * abs(SCORE_WEIGHTS["avoid"])
-        score -= penalty
-        concerns.append(
-            "Avoid-term penalty for: " + ", ".join(avoid_matches)
-        )
+        score_breakdown["avoid_term_penalty"] = -penalty
+        concerns.append("Avoid-term penalty for: " + ", ".join(avoid_matches))
 
     if not reasons:
         concerns.append("No clear profile overlap found.")
 
+    score = sum(score_breakdown.values())
     return Recommendation(
         domain=domain,
         score=round(score, 2),
+        score_breakdown={
+            key: round(value, 2)
+            for key, value in score_breakdown.items()
+            if value != 0
+        },
         reasons=reasons,
         concerns=concerns,
     )
@@ -157,11 +205,10 @@ def _score_matches(
 
 
 def _matched_terms(terms: list[str], text: str) -> list[str]:
-    normalized_text = _normalize(text)
+    normalized_text = _expanded_text(text)
     matches = []
     for term in terms:
-        normalized_term = _normalize(term)
-        if normalized_term and normalized_term in normalized_text:
+        if any(variant in normalized_text for variant in _term_variants(term)):
             matches.append(term)
     return matches
 
@@ -178,7 +225,7 @@ def _domain_text(domain: CapstoneDomain) -> str:
         domain.previous_projects,
         domain.raw_text,
     ]
-    return _normalize(" ".join(values))
+    return _expanded_text(" ".join(values))
 
 
 def _parse_heading(line: str) -> str | None:
@@ -199,3 +246,40 @@ def _split_items(text: str) -> list[str]:
 
 def _normalize(text: str) -> str:
     return " ".join(text.casefold().split())
+
+
+def _expanded_text(text: str) -> str:
+    normalized = _normalize(text)
+    expansions = []
+    for token in _tokens(normalized):
+        expansions.extend(ABBREVIATION_ALIASES.get(token, []))
+    expansions.extend(_acronyms_for_phrases(normalized))
+    return _normalize(" ".join([normalized, *expansions]))
+
+
+def _term_variants(term: str) -> list[str]:
+    normalized = _normalize(term)
+    if not normalized:
+        return []
+
+    variants = {normalized}
+    variants.update(ABBREVIATION_ALIASES.get(normalized, []))
+    for abbreviation, aliases in ABBREVIATION_ALIASES.items():
+        if normalized in aliases:
+            variants.add(abbreviation)
+    variants.update(_acronyms_for_phrases(normalized))
+    return [_normalize(variant) for variant in variants if variant]
+
+
+def _tokens(text: str) -> list[str]:
+    return re.findall(r"[a-z0-9]+(?:/[a-z0-9]+)?", text)
+
+
+def _acronyms_for_phrases(text: str) -> list[str]:
+    acronyms = []
+    stopwords = {"and", "for", "of", "the", "to", "with", "from", "in", "on"}
+    words = [word for word in _tokens(text) if word not in stopwords]
+    for size in range(2, 6):
+        for start in range(0, len(words) - size + 1):
+            acronyms.append("".join(word[0] for word in words[start : start + size]))
+    return acronyms
