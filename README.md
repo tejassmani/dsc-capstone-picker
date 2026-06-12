@@ -1,8 +1,8 @@
 # dsc-capstone-picker
 
-`dsc-capstone-picker` is a DSC 190 final project tool for exploring UCSD DSC capstone domains and finding projects that fit a student's interests, skills, preferences, and resume. It fetches the public capstone domain list, stores it locally, and produces explainable recommendations using local scoring, with optional OpenAI-powered explanations.
+`dsc-capstone-picker` is a command-line decision-support tool for UCSD DSC students choosing DSC 180A capstone domains. It parses the official [DSC Capstone enrollment page](https://dsc-capstone.org/enrollment/) into structured domain profiles, then helps students search, compare, summarize, and rank domains based on interests, background, mentor style, prerequisites, and resume fit.
 
-This project is designed for the UCSD DSC Capstone matching process for Fall-Winter 2026.
+The goal is to make the new top-10 domain selection process easier, more transparent, and less overwhelming. This project is designed for the UCSD DSC Capstone sequence covering DSC 180A in Fall 2026 and DSC 180B in Winter 2027, with optional GPT-powered explanations.
 
 ## Installation
 
@@ -68,7 +68,7 @@ uv run dsc-capstone-picker export --profile profile.json --top 10 --output top10
 uv run dsc-capstone-picker export --profile profile.json --resume examples/resume.txt --top 10 --output top10.txt --format txt
 ```
 
-Optional LLM explanations:
+Optional GPT-powered explanations:
 
 ```bash
 OPENAI_API_KEY=... uv run dsc-capstone-picker recommend --profile profile.json --top 10 --llm
@@ -76,7 +76,7 @@ OPENAI_API_KEY=... uv run dsc-capstone-picker recommend --profile profile.json -
 
 ## API Key
 
-Core functionality works without an API key. `OPENAI_API_KEY` is only needed when using `--llm` for optional OpenAI-powered explanations.
+Core functionality works without an API key. `OPENAI_API_KEY` is only needed when using `--llm` for optional GPT-powered explanations.
 
 ## Privacy
 
