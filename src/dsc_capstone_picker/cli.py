@@ -99,7 +99,7 @@ def search(query: str) -> None:
 @app.command()
 def recommend(
     profile: str | None = typer.Option(None, "--profile", "-p", help="Path to a text or JSON profile."),
-    resume: str | None = typer.Option(None, "--resume", "-r", help="Path to a plain-text resume."),
+    resume: str | None = typer.Option(None, "--resume", "-r", help="Path to a TXT or PDF resume."),
     top: int = typer.Option(10, "--top", "-n", help="Number of recommendations to show."),
     llm: bool = typer.Option(False, "--llm", help="Add optional OpenAI-powered explanations."),
 ) -> None:
@@ -126,7 +126,7 @@ def recommend(
 @app.command("export")
 def export_command(
     profile: str | None = typer.Option(None, "--profile", "-p", help="Path to a text or JSON profile."),
-    resume: str | None = typer.Option(None, "--resume", "-r", help="Path to a resume file."),
+    resume: str | None = typer.Option(None, "--resume", "-r", help="Path to a TXT or PDF resume."),
     top: int = typer.Option(10, "--top", "-n", help="Number of recommendations to export."),
     output: Path = typer.Option(..., "--output", "-o", help="Output file path."),
     export_format: str = typer.Option("csv", "--format", "-f", help="Export format: csv or txt."),

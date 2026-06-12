@@ -1,7 +1,7 @@
 [project]
 name = "dsc-capstone-picker"
 version = "0.1.0"
-description = "Add your description here"
+description = "CLI for exploring and ranking UCSD DSC capstone domains."
 readme = "README.md"
 authors = [
     { name = "tejassmani", email = "tmani@ucsd.edu" }

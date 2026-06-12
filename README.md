@@ -2,6 +2,8 @@
 
 `dsc-capstone-picker` is a DSC 190 final project tool for exploring UCSD DSC capstone domains and finding projects that fit a student's interests, skills, preferences, and resume. It fetches the public capstone domain list, stores it locally, and produces explainable recommendations using local scoring, with optional OpenAI-powered explanations.
 
+This project is designed for the UCSD DSC Capstone matching process for Fall-Winter 2026.
+
 ## Installation
 
 ```bash
