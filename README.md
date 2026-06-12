@@ -1,1 +1,1 @@
-# capstone-picker
+# dsc-capstone-picker
