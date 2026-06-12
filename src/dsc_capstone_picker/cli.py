@@ -20,6 +20,7 @@ from dsc_capstone_picker.models import (
     save_profile,
 )
 from dsc_capstone_picker.rank import parse_profile_file, rank_domains
+from dsc_capstone_picker.resume import merge_profiles, profile_from_resume
 from dsc_capstone_picker.scrape import fetch_domains
 from dsc_capstone_picker.search import find_domain, search_domains
 
@@ -92,15 +93,26 @@ def search(query: str) -> None:
 
 @app.command()
 def recommend(
-    profile: str = typer.Option(..., "--profile", "-p", help="Path to a text or JSON profile."),
+    profile: str | None = typer.Option(None, "--profile", "-p", help="Path to a text or JSON profile."),
+    resume: str | None = typer.Option(None, "--resume", "-r", help="Path to a plain-text resume."),
     top: int = typer.Option(10, "--top", "-n", help="Number of recommendations to show."),
 ) -> None:
     """Recommend capstone domains based on a student profile."""
+    if profile is None and resume is None:
+        console.print("Provide --profile, --resume, or both.")
+        return
+
     domains = _load_cached_domains()
     if domains is None:
         return
 
-    student_profile = parse_profile_file(profile)
+    questionnaire_profile = parse_profile_file(profile) if profile is not None else None
+    try:
+        resume_profile = profile_from_resume(resume) if resume is not None else None
+    except ValueError as error:
+        console.print(str(error))
+        return
+    student_profile = merge_profiles(questionnaire_profile, resume_profile)
     recommendations = rank_domains(domains, student_profile, top=top)
     console.print(_recommendations_table(recommendations))
 

@@ -208,7 +208,7 @@ def _matched_terms(terms: list[str], text: str) -> list[str]:
     normalized_text = _expanded_text(text)
     matches = []
     for term in terms:
-        if any(variant in normalized_text for variant in _term_variants(term)):
+        if any(_contains_term(normalized_text, variant) for variant in _term_variants(term)):
             matches.append(term)
     return matches
 
@@ -273,6 +273,11 @@ def _term_variants(term: str) -> list[str]:
 
 def _tokens(text: str) -> list[str]:
     return re.findall(r"[a-z0-9]+(?:/[a-z0-9]+)?", text)
+
+
+def _contains_term(text: str, term: str) -> bool:
+    pattern = rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])"
+    return re.search(pattern, text) is not None
 
 
 def _acronyms_for_phrases(text: str) -> list[str]:

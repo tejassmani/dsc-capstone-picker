@@ -1,0 +1,28 @@
+Tejas Mani
+Data Science Student
+
+Projects
+- Built a Python and pandas dashboard for education technology data, using SQL
+  queries and data visualization to track student outcomes.
+- Trained scikit-learn and PyTorch models for machine learning experiments with
+  large language model outputs.
+- Wrote web scraping scripts with BeautifulSoup and requests to collect public
+  datasets, then cleaned and analyzed them in NumPy.
+
+Skills
+- Python
+- pandas
+- NumPy
+- scikit-learn
+- PyTorch
+- SQL
+- Git
+- web scraping
+- data visualization
+- machine learning
+
+Interests
+- large language models
+- applied AI
+- education technology
+- data scientist roles
