@@ -19,6 +19,7 @@ from dsc_capstone_picker.models import (
     save_domains,
     save_profile,
 )
+from dsc_capstone_picker.export import EXPORT_FORMATS, export_recommendations
 from dsc_capstone_picker.rank import parse_profile_file, rank_domains
 from dsc_capstone_picker.resume import merge_profiles, profile_from_resume
 from dsc_capstone_picker.scrape import fetch_domains
@@ -98,23 +99,39 @@ def recommend(
     top: int = typer.Option(10, "--top", "-n", help="Number of recommendations to show."),
 ) -> None:
     """Recommend capstone domains based on a student profile."""
-    if profile is None and resume is None:
-        console.print("Provide --profile, --resume, or both.")
+    domains = _load_cached_domains()
+    if domains is None:
+        return
+
+    recommendations = _rank_from_inputs(domains, profile=profile, resume=resume, top=top)
+    if recommendations is None:
+        return
+    console.print(_recommendations_table(recommendations))
+
+
+@app.command("export")
+def export_command(
+    profile: str | None = typer.Option(None, "--profile", "-p", help="Path to a text or JSON profile."),
+    resume: str | None = typer.Option(None, "--resume", "-r", help="Path to a resume file."),
+    top: int = typer.Option(10, "--top", "-n", help="Number of recommendations to export."),
+    output: Path = typer.Option(..., "--output", "-o", help="Output file path."),
+    export_format: str = typer.Option("csv", "--format", "-f", help="Export format: csv or txt."),
+) -> None:
+    """Export ranked capstone recommendations."""
+    if export_format.casefold() not in EXPORT_FORMATS:
+        console.print("Unsupported export format. Use csv or txt.")
         return
 
     domains = _load_cached_domains()
     if domains is None:
         return
 
-    questionnaire_profile = parse_profile_file(profile) if profile is not None else None
-    try:
-        resume_profile = profile_from_resume(resume) if resume is not None else None
-    except ValueError as error:
-        console.print(str(error))
+    recommendations = _rank_from_inputs(domains, profile=profile, resume=resume, top=top)
+    if recommendations is None:
         return
-    student_profile = merge_profiles(questionnaire_profile, resume_profile)
-    recommendations = rank_domains(domains, student_profile, top=top)
-    console.print(_recommendations_table(recommendations))
+
+    export_recommendations(recommendations, output, export_format=export_format)
+    console.print(f"Exported {len(recommendations)} recommendations to {output}.")
 
 
 @profile_app.command("create")
@@ -192,6 +209,27 @@ def _load_cached_domains() -> list[CapstoneDomain] | None:
         console.print(CACHE_MISSING_MESSAGE)
         return None
     return load_domains()
+
+
+def _rank_from_inputs(
+    domains: list[CapstoneDomain],
+    profile: str | None,
+    resume: str | None,
+    top: int,
+) -> list[Recommendation] | None:
+    if profile is None and resume is None:
+        console.print("Provide --profile, --resume, or both.")
+        return None
+
+    questionnaire_profile = parse_profile_file(profile) if profile is not None else None
+    try:
+        resume_profile = profile_from_resume(resume) if resume is not None else None
+    except ValueError as error:
+        console.print(str(error))
+        return None
+
+    student_profile = merge_profiles(questionnaire_profile, resume_profile)
+    return rank_domains(domains, student_profile, top=top)
 
 
 def _domains_table(domains: list[CapstoneDomain], title: str = "Capstone Domains") -> Table:
