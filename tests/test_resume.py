@@ -53,11 +53,19 @@ def test_profile_from_resume_text_infers_obvious_interests() -> None:
     ]
 
 
-def test_load_resume_text_requires_txt_files(tmp_path) -> None:
+def test_load_resume_text_rejects_unsupported_files(tmp_path) -> None:
     resume_path = tmp_path / "resume.md"
     resume_path.write_text("Python and SQL", encoding="utf-8")
 
-    with pytest.raises(ValueError, match="Only plain text"):
+    with pytest.raises(ValueError, match="Only .txt and .pdf resumes are supported"):
+        load_resume_text(resume_path)
+
+
+def test_load_resume_text_pdf_failure_suggests_txt(tmp_path) -> None:
+    resume_path = tmp_path / "resume.pdf"
+    resume_path.write_bytes(b"not actually a pdf")
+
+    with pytest.raises(ValueError, match="Try saving your resume as a .txt file"):
         load_resume_text(resume_path)
 
 

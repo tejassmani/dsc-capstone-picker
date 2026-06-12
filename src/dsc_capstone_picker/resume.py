@@ -1,6 +1,8 @@
 import re
 from pathlib import Path
 
+from pypdf import PdfReader
+
 from dsc_capstone_picker.models import StudentProfile
 
 KNOWN_SKILLS = {
@@ -52,15 +54,18 @@ INTEREST_KEYWORDS = {
 
 
 def load_resume_text(path: str | Path) -> str:
-    """Load a plain-text resume."""
+    """Load resume text from a supported local file."""
     source = Path(path)
-    if source.suffix.casefold() != ".txt":
-        raise ValueError("Only plain text .txt resumes are supported.")
-    return source.read_text(encoding="utf-8")
+    suffix = source.suffix.casefold()
+    if suffix == ".txt":
+        return source.read_text(encoding="utf-8")
+    if suffix == ".pdf":
+        return _load_pdf_text(source)
+    raise ValueError("Only .txt and .pdf resumes are supported. Try saving your resume as a .txt file.")
 
 
 def profile_from_resume(path: str | Path) -> StudentProfile:
-    """Infer a student profile from a plain-text resume file."""
+    """Infer a student profile from a resume file."""
     text = load_resume_text(path)
     return profile_from_resume_text(text)
 
@@ -95,6 +100,23 @@ def _extract_terms(text: str, patterns_by_term: dict[str, list[str]]) -> list[st
         if any(re.search(pattern, text, flags=re.IGNORECASE) for pattern in patterns):
             matches.append(term)
     return matches
+
+
+def _load_pdf_text(path: Path) -> str:
+    try:
+        reader = PdfReader(path)
+        page_text = [page.extract_text() or "" for page in reader.pages]
+    except Exception as error:
+        raise ValueError(
+            "Could not read text from that PDF resume. Try saving your resume as a .txt file."
+        ) from error
+
+    text = "\n".join(page_text).strip()
+    if not text:
+        raise ValueError(
+            "That PDF resume did not contain extractable text. Try saving your resume as a .txt file."
+        )
+    return text
 
 
 def _merge_lists(lists: object) -> list[str]:
