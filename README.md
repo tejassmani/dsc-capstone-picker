@@ -1,49 +1,81 @@
 # dsc-capstone-picker
 
-CLI helper for exploring DSC capstone domains and generating local, explainable
-recommendations.
+`dsc-capstone-picker` is a DSC 190 final project tool for exploring UCSD DSC capstone domains and finding projects that fit a student's interests, skills, preferences, and resume. It fetches the public capstone domain list, stores it locally, and produces explainable recommendations using local scoring, with optional OpenAI-powered explanations.
 
-The core recommender works locally without an API key. It fetches public capstone
-domain data, parses local profiles/resumes, and ranks domains with explainable
-term-overlap scoring.
+## Installation
 
-## Resume Examples
+```bash
+uv add "git+https://github.com/tejassmani/dsc-capstone-picker.git"
+```
 
-Fetch and cache the current domains:
+## Usage
+
+Fetch and cache capstone domains:
 
 ```bash
 uv run dsc-capstone-picker fetch
 ```
 
-Recommend from a plain-text resume:
+List cached domains:
+
+```bash
+uv run dsc-capstone-picker list
+```
+
+Search domains:
+
+```bash
+uv run dsc-capstone-picker search "large language models"
+```
+
+Show one domain:
+
+```bash
+uv run dsc-capstone-picker show "Safe Agentic AI"
+```
+
+Create an interactive preference profile:
+
+```bash
+uv run dsc-capstone-picker profile create
+```
+
+Recommend with a profile:
+
+```bash
+uv run dsc-capstone-picker recommend --profile profile.json --top 10
+```
+
+Recommend with a resume:
 
 ```bash
 uv run dsc-capstone-picker recommend --resume examples/resume.txt --top 10
+uv run dsc-capstone-picker recommend --resume examples/resume.pdf --top 10
 ```
 
-Recommend from a PDF resume:
+Combine profile and resume:
 
 ```bash
-uv run dsc-capstone-picker recommend --resume resume.pdf --top 10
+uv run dsc-capstone-picker recommend --profile profile.json --resume examples/resume.txt --top 10
 ```
 
-Combine a questionnaire profile with resume evidence:
+Export recommendations:
 
 ```bash
-uv run dsc-capstone-picker recommend --profile profile.json --resume resume.pdf --top 10
+uv run dsc-capstone-picker export --profile profile.json --top 10 --output top10.csv
+uv run dsc-capstone-picker export --profile profile.json --resume examples/resume.txt --top 10 --output top10.txt --format txt
 ```
 
-PDF support extracts embedded text only. If a PDF cannot be parsed or contains no
-extractable text, save the resume as `.txt` and use `--resume resume.txt`.
-
-## Optional LLM Explanations
-
-OpenAI-powered explanations are optional. They require `OPENAI_API_KEY` and are
-only used when `--llm` is passed:
+Optional LLM explanations:
 
 ```bash
 OPENAI_API_KEY=... uv run dsc-capstone-picker recommend --profile profile.json --top 10 --llm
 ```
 
-Without `--llm`, no OpenAI API call is made. The LLM receives only the top ranked
-domains and the student profile/resume summary, not the full website.
+## API Key
+
+Core functionality works without an API key. `OPENAI_API_KEY` is only needed when using `--llm` for optional OpenAI-powered explanations.
+
+## Privacy
+
+Resume and profile data stay local for normal fetch, search, recommendation, and export workflows. If `--llm` is used, only the top ranked domains and the student profile/resume summary are sent to OpenAI for concise explanations.
