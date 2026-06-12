@@ -1,0 +1,19 @@
+Interests:
+- machine learning
+- large language models
+- data visualization
+- education technology
+
+Skills:
+- Python
+- pandas
+- scikit-learn
+- PyTorch
+- web scraping
+- Git
+
+Preferences:
+- applied projects
+- projects with clear deliverables
+- mentors who provide structured guidance
+- prefer not to do heavy theory
