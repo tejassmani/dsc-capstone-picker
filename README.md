@@ -55,6 +55,9 @@ uv run dsc-capstone-picker recommend --resume examples/resume.txt --top 10
 uv run dsc-capstone-picker recommend --resume examples/resume.pdf --top 10
 ```
 
+Replace `examples/resume.txt` or `examples/resume.pdf` with the actual path to
+your resume file.
+
 Combine profile and resume:
 
 ```bash
