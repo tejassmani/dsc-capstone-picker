@@ -1,8 +1,10 @@
 import typer
+from pathlib import Path
 from rich.console import Console
 
 app = typer.Typer(help="Explore, compare, and rank UCSD DSC capstone domains.")
 console = Console()
+DOMAINS_PATH = Path("domains.json")
 
 
 @app.command()
@@ -14,6 +16,10 @@ def fetch() -> None:
 @app.command()
 def list() -> None:
     """List available capstone domains."""
+    if not DOMAINS_PATH.exists():
+        console.print("No cached capstone domains found yet. Run fetch after data support is added.")
+        return
+
     console.print("Listing capstone domains...")
 
 
