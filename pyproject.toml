@@ -1,0 +1,17 @@
+[project]
+name = "dsc-capstone-picker"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "tejassmani", email = "tmani@ucsd.edu" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+dsc-capstone-picker = "dsc_capstone_picker:main"
+
+[build-system]
+requires = ["uv_build>=0.11.11,<0.12.0"]
+build-backend = "uv_build"
